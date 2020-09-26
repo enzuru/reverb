@@ -1,15 +1,18 @@
 ;; Package information
 
-(defpackage :reverb (:use :cl :sketch))
+(defpackage :reverb (:use :cl :sketch)
+            (:export
+             #:make-instance))
 (in-package :reverb)
 
 
 ;; Global variables
 
-(setf *events* (make-hash-table))
-(setf *instances* (make-hash-table))
-(setf *bullets* (make-hash-table))
-(setf *shooting* nil)
+(defparameter *events* (make-hash-table))
+(defparameter *instances* (make-hash-table))
+(defparameter *bullets* (make-hash-table))
+(defparameter *shooting* nil)
+;; (defparameter *lock* (bt:make-lock))
 
 ;; Functions
 
@@ -28,6 +31,7 @@
   (remhash name *instances*))
 
 (defun delete-bullet (name)
+  (remhash name *instances*)
   (remhash name *bullets*))
  
 (defun create-bullet (ship)
@@ -53,24 +57,28 @@
 
 (defun draw-sine (sine name ticks)
   (if (< (start-tick sine) ticks)
-      (let ((ticks  (* 0.2 (- 800 (- ticks (start-tick sine))))))
-        (setf (x sine) (* 5 ticks))
-        (setf (y sine) (+ 200 (* 50 (cos ticks))))
-        (circle (x sine) (y sine) (width sine))
+      (progn 
+        (let ((ticks  (* 0.2 (- 800 (- ticks (start-tick sine))))))
+          (setf (x sine) (* 5 ticks))
+          (setf (y sine) (+ 200 (* 50 (cos ticks))))
+          (circle (x sine) (y sine) (width sine))
 
-        (loop for k being each hash-key of *bullets*
-              do (progn
-                   (if (and (> (+ (x sine) (/ (width sine) 2)) (x (gethash k *bullets*)))
-                            (< (- (x sine) (/ (width sine) 2)) (x (gethash k *bullets*)))
-                            (> (+ (y sine) (/ (height sine) 2)) (y (gethash k *bullets*)))
-                            (< (- (y sine) (/ (height sine) 2)) (y (gethash k *bullets*))))
-                       (progn
-                         (delete-bullet k)
-                         (setf (health sine) (- (health sine) 1))
-                         (print "fuck")
-                         (print (health sine)))))))
-      (if (< (health sine) 1)
-          (delete-instance name))))
+          (loop for k being each hash-key of *bullets*
+                do (progn
+                     (if (and (> (+ (x sine) (/ (width sine) 2)) (x (gethash k *bullets*)))
+                              (< (- (x sine) (/ (width sine) 2)) (x (gethash k *bullets*)))
+                              (> (+ (y sine) (/ (height sine) 2)) (y (gethash k *bullets*)))
+                              (< (- (y sine) (/ (height sine) 2)) (y (gethash k *bullets*))))
+                         (progn
+                           (with-pen (make-pen :fill +RED+)
+                             (circle (x sine) (y sine) (width sine)))
+                           (delete-bullet k)
+                           (setf (health sine) (- (health sine) 1))
+                           (print (health sine)))))))
+        (if (< (health sine) 1)
+            (progn
+              (print "delete!")
+              (delete-instance name))))))
 
 
 ;; Classes
@@ -142,18 +150,26 @@
      (height 500)
      (ticks 0)
      (color 0))
-
+  
   (incf ticks)
   (incf color 0.0001)
   
   (background (rgb color color color))
   
+  (print *instances*)
+  
   (loop for k being each hash-key of *instances*
-        do (funcall
-            (draw-function (gethash k *instances*))
-            (gethash k *instances*)
-            k
-            ticks)))
+        do (progn
+             (if (gethash k *instances*)
+                 (funcall
+                  (draw-function (gethash k *instances*))
+                  (gethash k *instances*)
+                  k
+                  ticks)))))
+
+;; (let ((instances *instances*) (bullets *bullets*))
+  
+;;   )
 
 ;; Events
 
@@ -178,7 +194,8 @@
 (defmethod kit.sdl2:mousemotion-event ((window reverb) timestamp mask x y xrel yrel)
   (setf (x (gethash 'ship1 *instances*)) x)
   (setf (y (gethash 'ship1 *instances*)) y)
-  (format t "mouse: ~D, ~D " x y))
+  ;; (format t "mouse: ~D, ~D " x y)
+  )
 
 
 ;; Window
