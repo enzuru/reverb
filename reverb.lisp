@@ -1,3 +1,6 @@
+;; Copyright (C) Salma Karama, LLC
+;; SPDX-License-Identifier: GPL-3.0
+
 ;; Package information
 
 (defpackage :reverb (:use :cl :sketch)
