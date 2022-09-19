@@ -1,4 +1,4 @@
-;; Copyright (C) Salma Karama, LLC
+;; Copyright (C) enzu.ru
 ;; SPDX-License-Identifier: GPL-3.0
 
 ;; Package information
